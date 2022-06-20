@@ -13,7 +13,7 @@ export const initCrawler = async (): Promise<void> => {
 			await tweetNewDeals(deals)
 			await updateDeals(deals)
 		} catch (err: any) {
-            console.log("🚀 ~ file: App.ts ~ line 16 ~ initCrawler ~ err", err)
+			console.log("🚀 ~ file: App.ts ~ line 16 ~ initCrawler ~ err", err)
 		}
 	}
 

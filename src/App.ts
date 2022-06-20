@@ -13,5 +13,5 @@ app.get('/deals', dealsGET);
 
 app.listen(port, async () => {
 	console.log(`Listening on port ${port}`)
-	// await initCrawler()
+	await initCrawler()
 })

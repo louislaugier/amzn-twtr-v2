@@ -36,7 +36,7 @@ const formatTweet = (deal: Deal): Tweet => {
 	const oldPrice: string = deal.old_price ? `Was: $${deal.old_price}. ` : ''
 	const newPrice: string = deal.new_price ? `New price: $${deal.new_price}! ` : ''
 	const tweet: Tweet = {
-		text: `${discount}${deal.title}. ${oldPrice}${newPrice}${deal.url}`
+		text: `${discount}${deal.title}. ${oldPrice}${newPrice}${deal.url}&tag=${process.env.AMAZON_AFFILIATE_TAG}`
 	}
 
 	return tweet

@@ -27,7 +27,7 @@ export const crawlLatestAmazonDeals = async (pagination: number = 1): Promise<De
 		deals.push({
 			id: deal.split('data-deal-id="')[1].split('"')[0],
 			title: deal.split('<div class="DealContent-module__truncate_')[1].split('">')[1].split('</div>')[0],
-			url: `${deal.split('<a class="a-link-normal" href="')[1].split('"')[0]}&tag=${process.env.AMAZON_AFFILIATE_TAG}`,
+			url: deal.split('<a class="a-link-normal" href="')[1].split('"')[0],
 			old_price: deal.includes('<div class="a-row a-spacing-micro"><span class="a-size-small a-color-secondary">') ? parseFloat(deal.split('<div class="a-row a-spacing-micro"><span class="a-size-small a-color-secondary">')[1].split('class="a-price-whole">')[1].split('</')[0]) : null,
 			new_price: deal.includes('<span class="a-size-mini"><span role="text" class="a-price"') ? parseFloat(deal.split('<span class="a-size-mini"><span role="text" class="a-price"')[1].split('class="a-price-whole">')[1].split('</')[0]) : null,
 			discount,
