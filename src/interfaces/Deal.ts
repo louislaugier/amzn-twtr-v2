@@ -1,9 +1,9 @@
 export default interface Deal {
 	id: string,
 	title: string,
-	URL: string,
-	oldPrice: number | null,
-	newPrice: number | null,
+	url: string,
+	old_price: number | null,
+	new_price: number | null,
 	discount: string | null,
-	imageURL: string
+	image_url: string
 }

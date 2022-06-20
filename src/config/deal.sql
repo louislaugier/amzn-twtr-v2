@@ -1,7 +1,7 @@
 DROP TABLE IF EXISTS "public"."deal";
 
 CREATE TABLE "public"."deal" (
-    "id" varchar NOT NULL UNIQUE,
+    "id" varchar NOT NULL,
     "title" text NOT NULL,
     "url" varchar NOT NULL,
     "old_price" float4,

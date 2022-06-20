@@ -1,50 +1,58 @@
-import { RequestOptions } from 'oauth-1.0a'
-
-import db from '../config/PostgreSQL'
-import getHeader from './../config/OAuth1'
+import signRequest from './../config/OAuth1'
 import TwitterAPI from '../config/TwitterAPI'
 
 import Tweet from '../interfaces/Tweet'
 import Deal from '../interfaces/Deal'
 
-export const tweetNewDeals = async (lastDeals: Deal[]): Promise<void> => {
+import { sleep } from './utils'
+import { getDeals } from './Deal'
+
+export const tweetNewDeals = async (newDeals: Deal[]): Promise<void> => {
 	try {
-		const deals: Deal[] = db.select().table('deal')
-		for (let i: number = 0; i < lastDeals.length; i++) {
-			const newDeal: Deal = lastDeals[i]
+		let currentDeals: Deal[] = await getDeals()
+
+		for (let i: number = 0; i < newDeals.length; i++) {
+			const newDeal: Deal = newDeals[i]
 			let isNew = true
-			for (let j: number = 0; j < deals.length; j++) if (newDeal === deals[i]) isNew = false
+			for (let j: number = 0; j < currentDeals.length; j++) if (newDeal.id === currentDeals[j].id) {
+				isNew = false
+				break
+			}
+
 			if (isNew) {
-				const discount: string = newDeal.discount ? `${newDeal.discount}: ` : ''
-				const oldPrice: string = newDeal.oldPrice ? `Was: ${newDeal.oldPrice}. ` : ''
-				const newPrice: string = newDeal.newPrice ? `Current price: ${newDeal.newPrice}! ` : ''
-				const tweet: Tweet = {
-					text: `${discount}${newDeal.title}. ${oldPrice}${newPrice}${newDeal.URL}`
-				}
-
-				const oauthReqOptions: RequestOptions = {
-					url: `${process.env.TWITTER_API_URL}/tweets`,
-					method: 'POST',
-					data: tweet
-				}
-				TwitterAPI.defaults.headers.common['Authorization'] = getHeader(oauthReqOptions).Authorization
-				await TwitterAPI.post('tweets', tweet, {
-					headers: {
-						'Connection': 'close',
-						'Accept': '*/*',
-						'User-Agent': 'OAuth gem v0.4.4',
-						'Content-Type': 'application/x-www-form-urlencoded'
-					}
-				})
-
-				// await axios.post(oauthReqOptions.url, tweet, {
-				// 	headers: {
-				// 		'Authorization': getHeader(oauthReqOptions).Authorization
-				// 	}
-				// })
+				console.log('Tweeting...')
+				const tweet: Tweet = formatTweet(newDeal)
+				await sendTweet(tweet)
 			}
 		}
+		console.log('Done tweeting')
 	} catch (err: any) {
-        console.log("🚀 ~ file: Deal.ts ~ line 34 ~ tweetNewDeals ~ err", err)
+        console.log("🚀 ~ file: Deal.ts ~ line 30 ~ tweetNewDeals ~ err", err)
+	}
+}
+
+const formatTweet = (deal: Deal): Tweet => {
+	const discount: string = deal.discount ? `${deal.discount}: ` : ''
+	const oldPrice: string = deal.old_price ? `Was: $${deal.old_price}. ` : ''
+	const newPrice: string = deal.new_price ? `New price: $${deal.new_price}! ` : ''
+	const tweet: Tweet = {
+		text: `${discount}${deal.title}. ${oldPrice}${newPrice}${deal.url}`
+	}
+
+	return tweet
+}
+
+const sendTweet = async (tweet: Tweet): Promise<void> => {
+	try {
+		TwitterAPI.defaults.headers.common['Authorization'] = signRequest({
+			url: `${TwitterAPI.defaults.baseURL}/tweets`,
+			method: 'POST'
+		}).Authorization
+
+		await TwitterAPI.post('tweets', tweet)
+	} catch (err: any) {
+		console.log("🚀 ~ file: Tweet.ts ~ line 54 ~ tweetNewDeals ~ err", err)
+		await sleep(15)
+		await sendTweet(tweet)
 	}
 }
