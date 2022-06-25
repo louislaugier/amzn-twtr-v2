@@ -1,17 +1,19 @@
 import 'dotenv/config'
 import express, { Express } from 'express'
 
-import { dealsGET } from './controllers/Deal'
+import { initRoutes } from './services/server'
+import { initThreads } from './services/threads'
 
-import { initCrawler } from './services/utils'
+const server: Express = express()
+const port: number = parseInt(process.env.PORT || '8080')
+server.set('json spaces', 2)
 
-export const app: Express = express()
-const port: number | undefined = parseInt(process.env.PORT || '8080')
-app.set('json spaces', 2)
+initRoutes(server)
 
-app.get('/deals', dealsGET);
-
-app.listen(port, async () => {
+server.listen(port, async () => {
 	console.log(`Listening on port ${port}`)
-	await initCrawler()
+	await initThreads()
+
+	// sync expired deals
+	// crawl continue to twitter when account blocked 3 days
 })

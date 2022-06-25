@@ -1,13 +1,19 @@
-DROP TABLE IF EXISTS "public"."deal";
-
 CREATE TABLE "public"."deal" (
     "id" varchar NOT NULL,
     "title" text NOT NULL,
     "url" varchar NOT NULL,
-    "old_price" float4,
-    "new_price" float4,
+    "oldPrice" float4,
+    "newPrice" float4,
     "discount" varchar,
-    "image_url" varchar NOT NULL,
+    "imageUrl" varchar NOT NULL,
+    PRIMARY KEY ("id")
+);
+
+CREATE TABLE "public"."account" (
+    "id" varchar NOT NULL,
+    "name" varchar NOT NULL,
+    "username" varchar NOT NULL,
+	"isFollowed" boolean NOT NULL DEFAULT FALSE,
     PRIMARY KEY ("id")
 );
 
