@@ -6,6 +6,7 @@ CREATE TABLE "public"."deal" (
     "newPrice" float4,
     "discount" varchar,
     "imageUrl" varchar NOT NULL,
+	"tweetId" varchar,
     PRIMARY KEY ("id")
 );
 
@@ -16,4 +17,3 @@ CREATE TABLE "public"."account" (
 	"isFollowed" boolean NOT NULL DEFAULT FALSE,
     PRIMARY KEY ("id")
 );
-

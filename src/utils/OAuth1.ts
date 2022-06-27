@@ -1,9 +1,9 @@
 import crypto from 'crypto'
 import oauth1a, { RequestOptions } from 'oauth-1.0a'
 
-import TwitterAPI from './TwitterAPI'
+import TwitterAPI from '../config/TwitterAPI'
 
-export default async (method: string, url: string): Promise<void> => {
+export const signOAuth = async (method: string, url: string): Promise<void> => {
 	try {
 		const oauth: oauth1a = new oauth1a({
 			consumer: {

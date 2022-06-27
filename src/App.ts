@@ -13,7 +13,4 @@ initRoutes(server)
 server.listen(port, async () => {
 	console.log(`Listening on port ${port}`)
 	await initThreads()
-
-	// sync expired deals
-	// crawl continue to twitter when account blocked 3 days
 })
