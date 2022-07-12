@@ -9,8 +9,6 @@ import { insertRows, getRows, updateRows, deleteRows } from '../utils/PostgreSQL
 import { sleep } from '../utils/threads'
 import { formatTweet } from '../utils/Tweet'
 
-import { Browser, launch, Page } from 'puppeteer'
-
 export const initThreads = async (): Promise<void> => {
 	await Promise.all([
 		// syncNewDeals(),
@@ -122,10 +120,7 @@ const initAutoFollow = async (): Promise<void> => {
 
 const initAutoUnfollow = async (next_token: string | null = null): Promise<void> => {
 	const subscriptions: TwitterResponse = await getTwitterAccounts('subscriptions', process.env.TWITTER_ACCOUNT_ID || '', next_token)
-	if (Array.isArray(subscriptions.data)) for (let i = 0; i < subscriptions.data.length; i++) {
-		console.log(`Unfollowing follower ${subscriptions.data[i].id}...`)
-		await unfollowAccount(subscriptions.data[i].id)
-	}
+	if (Array.isArray(subscriptions.data)) for (let i = 0; i < subscriptions.data.length; i++) await unfollowAccount(subscriptions.data[i].id)
 
 	await initAutoUnfollow(subscriptions.meta?.next_token)
 }
