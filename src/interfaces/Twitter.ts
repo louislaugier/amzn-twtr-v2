@@ -6,8 +6,6 @@ export default interface Tweet {
 }
 
 interface MetaData {
-	result_count: number,
-	previous_token?: string,
 	next_token?: string
 }
 

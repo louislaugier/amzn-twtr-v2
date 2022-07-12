@@ -1,21 +1,24 @@
 import Deal from '../interfaces/Deal'
 import Account from '../interfaces/Account'
-import Tweet from '../interfaces/Twitter'
+import Tweet, { TwitterResponse } from '../interfaces/Twitter'
 
-import { getTwitterAccounts, followAccount, unfollowAccount, sendTweet} from './TwitterAPI'
-import { crawlDealPagesCount, crawlLatestDeals } from './crawler'
+import { getTwitterAccounts, followAccount, unfollowAccount, sendTweet, deleteTweet} from './TwitterAPI'
+import { crawlDealPage, crawlDealPagesCount, crawlLatestDeals } from './crawler'
 
-import { insertRows, getRows, updateRows } from '../utils/PostgreSQL'
+import { insertRows, getRows, updateRows, deleteRows } from '../utils/PostgreSQL'
 import { sleep } from '../utils/threads'
 import { formatTweet } from '../utils/Tweet'
+
 import { Browser, launch, Page } from 'puppeteer'
 
 export const initThreads = async (): Promise<void> => {
 	await Promise.all([
 		// syncNewDeals(),
-		syncAccounts(),
-		// syncExpiredDeals(),
-		// tweetNewDeals(),
+		syncExpiredDeals(),
+		// initAutoTweet(),
+		// syncSubscriptions(),
+
+		// syncAccounts(),
 		// initAutoFollow(),
 		// initAutoUnfollow()
 	])
@@ -42,81 +45,87 @@ const syncNewDeals = async (): Promise<void> => {
 }
 
 const syncExpiredDeals = async (): Promise<void> => {
-	const browser: Browser = await launch()
-	const page: Page = await browser.newPage()
-	await page.goto('')
-	const selector: string = ''
-	await page.waitForSelector(selector)
-	await page.$eval(selector, (elem: any) => console.log(elem.innerHTML))
+	const deals: Deal[] = await getRows('deal')
 
-	await browser.close()
-}
-
-const syncAccounts = async (offset: number = 0): Promise<void> => {
-	const accounts: Account[] = await getTwitterAccounts('subscriptions', process.env.TWITTER_ACCOUNT_ID || '')
-
-	const followAccountUsers: string[] = process.env.TWITTER_FOLLOW_ACCOUNTS?.split(',') || []
-	for (let i: number = 0; i < followAccountUsers?.length; i++) {
-		console.log(`Getting ${followAccountUsers[i]}'s followers with offset ${offset}`)
-		// object with accounts and next token and pass as param
-		const followers: Account[] = await getTwitterAccounts('followers', followAccountUsers[i], offset)
-		accounts.push(...followers)
-	}
-	await insertRows('account', accounts)
-	console.log(`Done adding new followers to database...`)
-
-	await sleep(15)
-	await syncAccounts(offset + 1000)
-}
-
-const tweetNewDeals = async (): Promise<void> => {
-	try {
-		let deals: Deal[] = await getRows('deal')
-
-		for (let i: number = 0; i < deals.length; i++) {
-			const newDeal: Deal = deals[i]
-
-			if (!newDeal.tweetId) {
-				console.log('Tweeting...')
-				const tweet: Tweet = formatTweet(newDeal)
-				const sentTweet: Tweet = await sendTweet(tweet)
-				await updateRows('deal', { id: newDeal.id }, { tweetId: sentTweet.id })
-			}
+	for (let i: number = 0; i < deals.length; i++) {
+		const isExistingDeal: boolean = await crawlDealPage(deals[i].url)
+		if (!isExistingDeal) {
+			if (deals[i].tweetId) await deleteTweet(deals[i].tweetId || '')
+			await deleteRows('deal', {id: deals[i].id})
 		}
-		console.log('Done tweeting')
-		await sleep(0.5)
-		await tweetNewDeals()
-	} catch (err: any) {
-        console.log("🚀 ~ file: Deal.ts ~ line 30 ~ tweetNewDeals ~ err", err)
 	}
+
+	console.log('Done syncing expired deals')
+	await sleep(0.5)
+	await syncExpiredDeals()
+}
+
+const initAutoTweet = async (): Promise<void> => {
+	let deals: Deal[] = await getRows('deal')
+
+	for (let i: number = 0; i < deals.length; i++) {
+		const newDeal: Deal = deals[i]
+
+		if (!newDeal.tweetId) {
+			console.log('Tweeting...')
+			const tweet: Tweet = formatTweet(newDeal)
+			const sentTweet: Tweet = await sendTweet(tweet)
+			await updateRows('deal', { id: newDeal.id }, { tweetId: sentTweet.id })
+		}
+	}
+	console.log('Done tweeting')
+
+	await initAutoTweet()
+}
+
+const syncSubscriptions = async (paginationToken: string | null = null): Promise<void> => {
+	const subscriptions: TwitterResponse = await getTwitterAccounts('followers', process.env.TWITTER_ACCOUNT_ID || '', paginationToken)
+    console.log("🚀 ~ file: threads.ts ~ line 78 ~ syncSubscriptions ~ subscriptions", subscriptions)
+	if (Array.isArray(subscriptions.data)) {
+		subscriptions.data.push(...subscriptions.data)
+		await insertRows('account', subscriptions.data)
+	}
+
+	console.log('Done adding new subscriptions to database')
+	await sleep(15)
+	await syncSubscriptions(subscriptions.meta?.next_token)
+}
+
+const syncAccounts = async (paginationToken: string | null = null): Promise<void> => {
+	const followAccountUsers: string[] = process.env.TWITTER_FOLLOW_ACCOUNTS?.split(',') || []
+	const accounts: TwitterResponse = { data: []}
+
+	if (Array.isArray(accounts.data)) {
+		for (let i: number = 0; i < followAccountUsers?.length; i++) {
+			console.log(`Getting ${followAccountUsers[i]}'s followers`)
+			const followers: TwitterResponse = await getTwitterAccounts('followers', followAccountUsers[i], paginationToken)
+			if (Array.isArray(followers.data)) accounts.data.push(...followers.data)
+		}
+		await insertRows('account', accounts.data)
+	}
+
+	console.log('Done adding new followers to database')
+	await syncAccounts(accounts.meta?.next_token)
 }
 
 const initAutoFollow = async (): Promise<void> => {
-	try {
-		const accounts: Account[] = await getRows('account')
+	const accounts: Account[] = await getRows('account')
 
-		for (let i: number = 0; i < accounts.length; i++) {
-			if (!accounts[i].isFollowed) {
-				console.log(`Following account ${accounts[i]}...`)
-				await followAccount(accounts[i].id)
-				await updateRows('account', { id: accounts[i].id }, { isFollowed: true })
-			}
-		}
-		await initAutoFollow()
-	} catch (err: any) {
-        console.log("🚀 ~ file: Twitter.ts ~ line 22 ~ initAutoFollow ~ err", err)
+	for (let i: number = 0; i < accounts.length; i++) if (!accounts[i].isFollowed) {
+		console.log(`Following account ${accounts[i]}...`)
+		await followAccount(accounts[i].id)
+		await updateRows('account', { id: accounts[i].id }, { isFollowed: true })
 	}
+
+	await initAutoFollow()
 }
 
-const initAutoUnfollow = async (): Promise<void> => {
-	try {
-		const subscriptions: Account[] = await getTwitterAccounts('subscriptions', process.env.TWITTER_ACCOUNT_ID || '')
-		console.log(`Unfollowing follower ${subscriptions[0].id}...`)
-		await unfollowAccount(subscriptions[0].id)
-
-		await sleep(0.5)
-		await initAutoUnfollow()
-	} catch (err: any) {
-        console.log("🚀 ~ file: Twitter.ts ~ line 22 ~ initAutoFollow ~ err", err)
+const initAutoUnfollow = async (next_token: string | null = null): Promise<void> => {
+	const subscriptions: TwitterResponse = await getTwitterAccounts('subscriptions', process.env.TWITTER_ACCOUNT_ID || '', next_token)
+	if (Array.isArray(subscriptions.data)) for (let i = 0; i < subscriptions.data.length; i++) {
+		console.log(`Unfollowing follower ${subscriptions.data[i].id}...`)
+		await unfollowAccount(subscriptions.data[i].id)
 	}
+
+	await initAutoUnfollow(subscriptions.meta?.next_token)
 }

@@ -10,7 +10,7 @@ export const getRows = async (table: string, query: Query = {}): Promise<any[]> 
 
 		return rows
 	} catch (err: any) {
-        console.log("🚀 ~ file: utils.ts ~ line 14 ~ getRows ~ err", err)
+        console.log("🚀 ~ file: utils.ts ~ line 13 ~ getRows ~ err", err)
 		await sleep(0.5)
 		return await getRows(table, query)
 	}
@@ -21,7 +21,6 @@ export const insertRows = async (table: string, rows: any[], countRowsAffected: 
 		let oldCount: number = 0
 		let newCount: number = 0
 		if (countRowsAffected) oldCount = await getRowsCount(table)
-
 		await db(table).insert(rows).onConflict('id').ignore().then((res: any) => {})
 
 		if (countRowsAffected) {
@@ -42,7 +41,7 @@ export const updateRows = async (table: string, where: any, values: any): Promis
 	try {
 		await db(table).where(...formatWhere(where)).update(values).then((res: any) => {})
 	} catch (err: any) {
-        console.log("🚀 ~ file: utils.ts ~ line 14 ~ updateRows ~ err", err)
+        console.log("🚀 ~ file: utils.ts ~ line 45 ~ updateRows ~ err", err)
 		await sleep(0.5)
 		return await updateRows(table, where, values)
 	}
@@ -52,7 +51,7 @@ export const deleteRows = async (table: string, where: any): Promise<void> => {
 	try {
 		await db(table).where(...formatWhere(where)).del().then((res: any) => {})
 	} catch (err: any) {
-        console.log("🚀 ~ file: utils.ts ~ line 14 ~ updateRows ~ err", err)
+        console.log("🚀 ~ file: utils.ts ~ line 55 ~ deleteRows ~ err", err)
 		await sleep(0.5)
 		return await deleteRows(table, where)
 	}
@@ -64,13 +63,13 @@ export const getRowsCount = async (table: string): Promise<number> => {
 		await db.raw(`select count(*) from ${table}`).then((res: any) => count = res)
 		return count
 	} catch (err: any) {
-		console.log("🚀 ~ file: utils.ts ~ line 47 ~ insertRows ~ err", err)
+		console.log("🚀 ~ file: utils.ts ~ line 67 ~ getRowsCount ~ err", err)
 		await sleep(0.5)
 		return await getRowsCount(table)
 	}
 }
 
-// needs orWhere support
+// to do: orWhere support
 const formatWhere = (query: Query): Array<object> | Array<number> => {
 	let where: any = {}
 	for (let i: number = 0; i < Object.keys(query).length; i++) {

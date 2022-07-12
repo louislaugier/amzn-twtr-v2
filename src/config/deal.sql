@@ -12,8 +12,6 @@ CREATE TABLE "public"."deal" (
 
 CREATE TABLE "public"."account" (
     "id" varchar NOT NULL,
-    "name" varchar NOT NULL,
-    "username" varchar NOT NULL,
 	"isFollowed" boolean NOT NULL DEFAULT FALSE,
     PRIMARY KEY ("id")
 );
