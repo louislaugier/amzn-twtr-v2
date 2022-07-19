@@ -2,7 +2,7 @@ import Deal from '../interfaces/Deal'
 import Account from '../interfaces/Account'
 import Tweet, { TwitterResponse } from '../interfaces/Twitter'
 
-import { getTwitterAccounts, followAccount, unfollowAccount, sendTweet, deleteTweet} from './TwitterAPI'
+import { getTwitterAccounts, followAccount, unfollowAccount, sendTweet, deleteTweet } from './TwitterAPI'
 import { crawlDealPage, crawlDealPagesCount, crawlLatestDeals } from './crawler'
 
 import { insertRows, getRows, updateRows, deleteRows } from '../utils/PostgreSQL'
@@ -12,11 +12,11 @@ import { formatTweet } from '../utils/Tweet'
 export const initThreads = async (): Promise<void> => {
 	await Promise.all([
 		// syncNewDeals(),
-		syncExpiredDeals(),
+		// syncExpiredDeals(),
 		// initAutoTweet(),
 		// syncSubscriptions(),
 
-		// syncAccounts(),
+		syncAccounts()
 		// initAutoFollow(),
 		// initAutoUnfollow()
 	])
@@ -45,11 +45,12 @@ const syncNewDeals = async (): Promise<void> => {
 const syncExpiredDeals = async (): Promise<void> => {
 	const deals: Deal[] = await getRows('deal')
 
-	for (let i: number = 0; i < deals.length; i++) {
-		const isExistingDeal: boolean = await crawlDealPage(deals[i].url)
+	for (const deal of deals) {
+		const isExistingDeal: boolean = await crawlDealPage(deal.url)
 		if (!isExistingDeal) {
-			if (deals[i].tweetId) await deleteTweet(deals[i].tweetId || '')
-			await deleteRows('deal', {id: deals[i].id})
+			console.log(`Deleting deal ${deal.id}`)
+			if (deal.tweetId) await deleteTweet(deal.tweetId || '')
+			await deleteRows('deal', { id: deal.id })
 		}
 	}
 
@@ -61,16 +62,13 @@ const syncExpiredDeals = async (): Promise<void> => {
 const initAutoTweet = async (): Promise<void> => {
 	let deals: Deal[] = await getRows('deal')
 
-	for (let i: number = 0; i < deals.length; i++) {
-		const newDeal: Deal = deals[i]
-
-		if (!newDeal.tweetId) {
+	for (const deal of deals)
+		if (!deal.tweetId) {
 			console.log('Tweeting...')
-			const tweet: Tweet = formatTweet(newDeal)
+			const tweet: Tweet = formatTweet(deal)
 			const sentTweet: Tweet = await sendTweet(tweet)
-			await updateRows('deal', { id: newDeal.id }, { tweetId: sentTweet.id })
+			await updateRows('deal', { id: deal.id }, { tweetId: sentTweet.id })
 		}
-	}
 	console.log('Done tweeting')
 
 	await initAutoTweet()
@@ -78,28 +76,28 @@ const initAutoTweet = async (): Promise<void> => {
 
 const syncSubscriptions = async (paginationToken: string | null = null): Promise<void> => {
 	const subscriptions: TwitterResponse = await getTwitterAccounts('followers', process.env.TWITTER_ACCOUNT_ID || '', paginationToken)
-    console.log("🚀 ~ file: threads.ts ~ line 78 ~ syncSubscriptions ~ subscriptions", subscriptions)
 	if (Array.isArray(subscriptions.data)) {
-		subscriptions.data.push(...subscriptions.data)
+		for (const i in subscriptions.data) subscriptions.data[i].isFollowed = true
 		await insertRows('account', subscriptions.data)
 	}
 
 	console.log('Done adding new subscriptions to database')
-	await sleep(15)
 	await syncSubscriptions(subscriptions.meta?.next_token)
 }
 
 const syncAccounts = async (paginationToken: string | null = null): Promise<void> => {
 	const followAccountUsers: string[] = process.env.TWITTER_FOLLOW_ACCOUNTS?.split(',') || []
-	const accounts: TwitterResponse = { data: []}
+	const accounts: TwitterResponse = { data: [] }
 
 	if (Array.isArray(accounts.data)) {
-		for (let i: number = 0; i < followAccountUsers?.length; i++) {
-			console.log(`Getting ${followAccountUsers[i]}'s followers`)
-			const followers: TwitterResponse = await getTwitterAccounts('followers', followAccountUsers[i], paginationToken)
-			if (Array.isArray(followers.data)) accounts.data.push(...followers.data)
+		for (const account of followAccountUsers) {
+			console.log(`Getting ${account}'s followers`)
+			const followers: TwitterResponse = await getTwitterAccounts('followers', account, paginationToken)
+			if (Array.isArray(followers.data)) {
+				for (const i in followers.data) followers.data[i] = { id: followers.data[i].id }
+				await insertRows('account', followers.data)
+			}
 		}
-		await insertRows('account', accounts.data)
 	}
 
 	console.log('Done adding new followers to database')
@@ -109,18 +107,25 @@ const syncAccounts = async (paginationToken: string | null = null): Promise<void
 const initAutoFollow = async (): Promise<void> => {
 	const accounts: Account[] = await getRows('account')
 
-	for (let i: number = 0; i < accounts.length; i++) if (!accounts[i].isFollowed) {
-		console.log(`Following account ${accounts[i]}...`)
-		await followAccount(accounts[i].id)
-		await updateRows('account', { id: accounts[i].id }, { isFollowed: true })
-	}
+	for (const account of accounts)
+		if (!account.isFollowed) {
+			console.log(`Following account ${account.id}...`)
+			await followAccount(account.id)
+			await updateRows('account', { id: account.id }, { isFollowed: true })
+			await sleep(4)
+		}
 
 	await initAutoFollow()
 }
 
-const initAutoUnfollow = async (next_token: string | null = null): Promise<void> => {
-	const subscriptions: TwitterResponse = await getTwitterAccounts('subscriptions', process.env.TWITTER_ACCOUNT_ID || '', next_token)
-	if (Array.isArray(subscriptions.data)) for (let i = 0; i < subscriptions.data.length; i++) await unfollowAccount(subscriptions.data[i].id)
+const initAutoUnfollow = async (): Promise<void> => {
+	const followedAccounts: Account[] = await getRows('account', { isFollowed: true })
+	for (const account of followedAccounts) {
+		console.log(`Unfollowing account ${account.id}...`)
+		await unfollowAccount(account.id)
+		await updateRows('account', { id: account.id }, { isFollowed: false })
+		await sleep(10)
+	}
 
-	await initAutoUnfollow(subscriptions.meta?.next_token)
+	await initAutoUnfollow()
 }

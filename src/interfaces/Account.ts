@@ -1,4 +1,4 @@
 export default interface Account {
-	id: string,
+	id: string
 	isFollowed?: boolean
 }

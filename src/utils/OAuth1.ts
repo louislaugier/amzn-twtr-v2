@@ -16,16 +16,19 @@ export const signOAuth = async (method: string, url: string): Promise<void> => {
 			}
 		})
 
-		const authorization: oauth1a.Authorization = oauth.authorize({
-			url,
-			method
-		}, {
-			key: process.env.TWITTER_ACCESS_TOKEN || '',
-			secret: process.env.TWITTER_ACCESS_SECRET || ''
-		})
+		const authorization: oauth1a.Authorization = oauth.authorize(
+			{
+				url,
+				method
+			},
+			{
+				key: process.env.TWITTER_ACCESS_TOKEN || '',
+				secret: process.env.TWITTER_ACCESS_SECRET || ''
+			}
+		)
 
 		TwitterAPI.defaults.headers.common['Authorization'] = oauth.toHeader(authorization).Authorization
 	} catch (err: any) {
-   		console.log("🚀 ~ file: OAuth1.ts ~ line 29 ~ err", err)
+		console.log('🚀 ~ file: OAuth1.ts ~ line 29 ~ err', err)
 	}
 }

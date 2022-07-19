@@ -1,7 +1,7 @@
-import Account from "./Account"
+import Account from './Account'
 
 export default interface Tweet {
-	id?: string,
+	id?: string
 	text: string
 }
 
@@ -10,6 +10,6 @@ interface MetaData {
 }
 
 export interface TwitterResponse {
-	data: Account[] | Account | Tweet,
+	data: Account[] | Account | Tweet
 	meta?: MetaData
 }

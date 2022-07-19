@@ -1,8 +1,8 @@
-import { Browser, launch, Page } from "puppeteer"
+import { Browser, launch, Page } from 'puppeteer'
 
-import Deal from "../interfaces/Deal"
+import Deal from '../interfaces/Deal'
 
-import { parseDeals } from "../utils/Deal"
+import { parseDeals } from '../utils/Deal'
 
 export const crawlDealPagesCount = async (): Promise<number> => {
 	const browser: Browser = await launch()
@@ -38,7 +38,7 @@ export const crawlDealPage = async (url: string): Promise<boolean> => {
 	const browser: Browser = await launch()
 	const page: Page = await browser.newPage()
 	await page.goto(url)
-	await page.waitForNavigation({waitUntil: 'networkidle2'})
+	await page.waitForNavigation({ waitUntil: 'networkidle2' })
 	const html: string = (await page.$eval('html', (elem: any) => elem.innerHTML)).toString()
 	await browser.close()
 

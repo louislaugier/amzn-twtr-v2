@@ -1,5 +1,5 @@
-import Deal from "../interfaces/Deal"
-import Tweet from "../interfaces/Twitter"
+import Deal from '../interfaces/Deal'
+import Tweet from '../interfaces/Twitter'
 
 export const formatTweet = (deal: Deal): Tweet => {
 	const discount: string = deal.discount ? `${deal.discount}: ` : ''

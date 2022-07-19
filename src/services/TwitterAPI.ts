@@ -1,10 +1,10 @@
-import TwitterAPI from "../config/TwitterAPI"
+import TwitterAPI from '../config/TwitterAPI'
 
-import Tweet, { TwitterResponse } from "../interfaces/Twitter"
-import Account from "../interfaces/Account"
+import Tweet, { TwitterResponse } from '../interfaces/Twitter'
+import Account from '../interfaces/Account'
 
-import { sleep } from "../utils/threads"
-import { signOAuth } from "../utils/OAuth1"
+import { sleep } from '../utils/threads'
+import { signOAuth } from '../utils/OAuth1'
 
 export const sendTweet = async (tweet: Tweet): Promise<Tweet> => {
 	try {
@@ -14,7 +14,7 @@ export const sendTweet = async (tweet: Tweet): Promise<Tweet> => {
 		if ('text' in res.data && 'id' in res.data) sentTweet = res.data
 		return sentTweet
 	} catch (err: any) {
-		console.log("🚀 ~ file: Tweet.ts ~ line 50 ~ tweetNewDeals ~ err", err)
+		console.log('🚀 ~ file: Tweet.ts ~ line 50 ~ tweetNewDeals ~ err', err)
 		await sleep(0.5)
 		return await sendTweet(tweet)
 	}
@@ -25,7 +25,7 @@ export const deleteTweet = async (tweetID: string): Promise<void> => {
 		signOAuth('DELETE', `${TwitterAPI.defaults.baseURL}/tweets/${tweetID}`)
 		await TwitterAPI.delete(`tweets/${tweetID}`)
 	} catch (err: any) {
-		console.log("🚀 ~ file: Tweet.ts ~ line 50 ~ tweetNewDeals ~ err", err)
+		console.log('🚀 ~ file: Tweet.ts ~ line 50 ~ tweetNewDeals ~ err', err)
 		await sleep(0.5)
 		return await deleteTweet(tweetID)
 	}
@@ -51,7 +51,7 @@ export const getTwitterAccounts = async (type: string, accountID: string, pagina
 
 		return res
 	} catch (err: any) {
-		console.log("🚀 ~ file: Twitter.ts ~ line 49 ~ fetchAccounts ~ err", err)
+		console.log('🚀 ~ file: Twitter.ts ~ line 49 ~ fetchAccounts ~ err', err)
 		await sleep(0.5)
 		return await getTwitterAccounts(type, accountID, paginationToken)
 	}
@@ -67,7 +67,7 @@ export const followAccount = async (accountID: string): Promise<void> => {
 			target_user_id: accountID
 		})
 	} catch (err: any) {
-        console.log("🚀 ~ file: Twitter.ts ~ line 68 ~ followAccount ~ err", err)
+		console.log('🚀 ~ file: Twitter.ts ~ line 68 ~ followAccount ~ err', err)
 		await sleep(0.5)
 		await followAccount(accountID)
 	}
@@ -80,7 +80,7 @@ export const unfollowAccount = async (accountID: string): Promise<void> => {
 		console.log(`Unfollowing account ${accountID}...`)
 		await TwitterAPI.delete(url)
 	} catch (err: any) {
-        console.log("🚀 ~ file: Twitter.ts ~ line 81 ~ unFollowAccount ~ err", err)
+		console.log('🚀 ~ file: Twitter.ts ~ line 81 ~ unFollowAccount ~ err', err)
 		await sleep(0.5)
 		await unfollowAccount(accountID)
 	}
